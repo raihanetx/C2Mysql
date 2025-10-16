@@ -25,8 +25,25 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Use password_verify to securely check the hashed password
-    if (isset($_POST['password']) && password_verify($_POST['password'], $ADMIN_PASSWORD_HASH)) {
+    $password_is_correct = false;
+    $submitted_password = $_POST['password'] ?? '';
+    $stored_password_value = $config['admin_password'] ?? '';
+
+    // 1. Check if the stored password is a valid hash and verify against it
+    if (password_verify($submitted_password, $stored_password_value)) {
+        $password_is_correct = true;
+    }
+    // 2. Legacy check for plaintext password from config.
+    else if (!empty($submitted_password) && $submitted_password === $stored_password_value) {
+        $password_is_correct = true;
+        // --- Security Upgrade ---
+        // Upgrade the plaintext password to a secure hash.
+        $config['admin_password'] = password_hash($submitted_password, PASSWORD_DEFAULT);
+        // Save the updated config with the new hash.
+        file_put_contents($config_file_path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    if ($password_is_correct) {
         // Password is correct, set session variable and regenerate session ID
         session_regenerate_id(true);
         $_SESSION['loggedin'] = true;
