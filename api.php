@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!$action) { http_response_code(400); die("Action not specified."); }
 
-    $admin_actions = ['add_category', 'delete_category', 'edit_category', 'add_product', 'delete_product', 'edit_product', 'add_coupon', 'delete_coupon', 'update_review_status', 'update_order_status', 'update_hero_banner', 'update_favicon', 'update_currency_rate', 'update_contact_info', 'update_admin_password', 'update_site_logo', 'update_hot_deals', 'update_payment_methods', 'update_smtp_settings', 'send_manual_email'];
+    $admin_actions = ['add_category', 'delete_category', 'edit_category', 'add_product', 'delete_product', 'edit_product', 'add_coupon', 'delete_coupon', 'update_review_status', 'update_order_status', 'update_hero_banner', 'update_favicon', 'update_currency_rate', 'update_contact_info', 'update_admin_password', 'update_site_logo', 'update_hot_deals', 'update_payment_methods', 'update_smtp_settings', 'send_manual_email', 'update_page'];
     if (in_array($action, $admin_actions)) {
         // Use the centralized security check for all admin actions
         require_once 'security.php';
@@ -251,6 +251,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$_POST['review_id']]);
         }
         $redirect_url = 'admin.php?view=reviews';
+    }
+
+    // --- PAGE ACTIONS ---
+    elseif ($action === 'update_page') {
+        $slug = $_POST['page_slug'];
+        $title = htmlspecialchars(trim($_POST['page_title']));
+        // Allow safe HTML in content, but this could be improved with a proper HTML purifier library for better security
+        $content = $_POST['page_content'];
+
+        $stmt = $pdo->prepare("UPDATE pages SET title = ?, content = ? WHERE slug = ?");
+        $stmt->execute([$title, $content, $slug]);
+
+        $redirect_url = 'admin.php?view=pages';
     }
 
     // --- ORDER ACTIONS ---
