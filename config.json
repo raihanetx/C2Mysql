@@ -1,0 +1,41 @@
+{
+    "hero_banner": [
+        "uploads/hero-1758956406-68d78b7692a6a-gradient-1758956354465.png",
+        "uploads/hero-1758956406-68d78b7693342-gradient-1758956349912.png",
+        "uploads/hero-1758956406-68d78b7693578-gradient-1758956339294.png",
+        "uploads/hero-1758956406-68d78b769379d-gradient-1758956335892.png",
+        "uploads/hero-1758956406-68d78b76939b9-gradient-1758956330738.png",
+        "uploads/hero-1758956406-68d78b7693bd6-gradient-1758956316920.png",
+        "uploads/hero-1758956406-68d78b7693e0d-gradient-1758956305459.png",
+        "uploads/hero-1758956406-68d78b769401f-gradient-1758956299916.png"
+    ],
+    "favicon": "",
+    "contact_info": {
+        "phone": "+880189014222",
+        "whatsapp": "880189014222",
+        "email": "Info@submonth.com"
+    },
+    "admin_password": "password123",
+    "usd_to_bdt_rate": 110,
+    "site_logo": "",
+    "hero_slider_interval": 5000,
+    "hot_deals_speed": 10,
+    "payment_methods": {
+        "bKash": {
+            "number": "01867892521",
+            "logo_url": "uploads/payment-1759080358-68d90fa6c4988-bkash-logo-812-C8-D0-E62-seeklogo-com.png"
+        },
+        "Nagad": {
+            "number": "01867892521",
+            "logo_url": "uploads/payment-1759080358-68d90fa6c52a0-nagad-logo-7-A6-B8-E6-EED-seeklogo-com.png"
+        },
+        "Binance Pay": {
+            "pay_id": "1023013318",
+            "logo_url": "uploads/payment-1759080358-68d90fa6c556b-binance-pay-logo-2-F1-E0-B5-AAB-seeklogo-com.png"
+        }
+    },
+    "smtp_settings": {
+        "admin_email": "submonth.com@gmail.com",
+        "app_password": "esievucarwgmjgtj"
+    }
+}
