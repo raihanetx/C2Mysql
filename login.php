@@ -47,6 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Password is correct, set session variable and regenerate session ID
         session_regenerate_id(true);
         $_SESSION['loggedin'] = true;
+        // --- Enhanced Security ---
+        // Store user-specific info to prevent session hijacking
+        $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+        $_SESSION['user_ip'] = $_SERVER['REMOTE_ADDR'];
         header('Location: admin.php');
         exit;
     } else {

@@ -1,19 +1,9 @@
 
 <?php
-// index.php - FINAL & COMPLETE version rewritten for MySQL Database
-require_once 'db.php';
+// index.php - Rewritten to use MySQL Database
+require_once 'db.php'; // Connect to the database
 
-// --- Helper Functions ---
-function get_all_settings($pdo) {
-    $settings = [];
-    $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $value = json_decode($row['setting_value'], true);
-        $settings[$row['setting_key']] = (json_last_error() === JSON_ERROR_NONE) ? $value : $row['setting_value'];
-    }
-    return $settings;
-}
-
+// --- Helper Function ---
 function slugify($text) {
     if (function_exists('iconv')) { $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text); }
     $text = preg_replace('~[^\pL\d]+~u', '-', $text);
@@ -28,12 +18,16 @@ function slugify($text) {
 // --- Base Path ---
 define('BASE_PATH', rtrim(str_replace('index.php', '', $_SERVER['SCRIPT_NAME']), '/'));
 
-// --- Load ALL Data from DATABASE ---
-$site_config = get_all_settings($pdo);
-$all_coupons_data = $pdo->query("SELECT * FROM coupons")->fetchAll(PDO::FETCH_ASSOC);
-$all_hotdeals_data = $pdo->query("SELECT h.product_id as productId, h.custom_title as customTitle FROM hotdeals h")->fetchAll(PDO::FETCH_ASSOC);
+// --- Load Data from DATABASE and Config ---
 
-// Extract simple config values
+// Load Coupons from DATABASE
+$all_coupons_data = $pdo->query("SELECT * FROM coupons")->fetchAll(PDO::FETCH_ASSOC);
+
+// Load Site Config (still from JSON)
+$config_file_path = 'config.json';
+if (!file_exists($config_file_path)) file_put_contents($config_file_path, '{}');
+$site_config = json_decode(file_get_contents($config_file_path), true);
+
 $hero_banner_paths_raw = $site_config['hero_banner'] ?? [];
 $hero_banner_paths = array_map(function($path) { return rtrim(BASE_PATH, '/') . '/' . ltrim($path, '/'); }, $hero_banner_paths_raw);
 $favicon_path = $site_config['favicon'] ?? '';
@@ -44,7 +38,12 @@ $hero_slider_interval = $site_config['hero_slider_interval'] ?? 5000;
 $hot_deals_speed = $site_config['hot_deals_speed'] ?? 40;
 $payment_methods = $site_config['payment_methods'] ?? [];
 
-// --- Prepare Data for Vue.js ---
+// Load Hot Deals Data (still from JSON)
+$hotdeals_file_path = 'hotdeals.json';
+if (!file_exists($hotdeals_file_path)) file_put_contents($hotdeals_file_path, '[]');
+$all_hotdeals_data = json_decode(file_get_contents($hotdeals_file_path), true);
+
+// --- Prepare Data from DATABASE for Vue.js ---
 $all_categories = [];
 $all_products_flat = [];
 $products_by_category = [];
@@ -54,7 +53,11 @@ $static_pages = ['cart', 'checkout', 'order-history', 'products', 'about-us', 'p
 
 $categories = $pdo->query("SELECT id, name, slug, icon FROM categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 foreach ($categories as $category) {
-    $all_categories[] = ['name' => $category['name'], 'slug' => $category['slug'], 'icon' => $category['icon']];
+    $all_categories[] = [
+        'name' => $category['name'],
+        'slug' => $category['slug'],
+        'icon' => $category['icon']
+    ];
     $category_slug_map[$category['slug']] = $category['name'];
 
     $product_stmt = $pdo->prepare("SELECT * FROM products WHERE category_id = ? ORDER BY name ASC");
@@ -64,21 +67,25 @@ foreach ($categories as $category) {
     $category_products_temp = [];
     foreach ($products_for_this_category as $product) {
         $product_data = $product;
+        // Make sure boolean values are actual booleans for JSON
         $product_data['stock_out'] = (bool)$product_data['stock_out'];
         $product_data['featured'] = (bool)$product_data['featured'];
         $product_data['category'] = $category['name'];
         $product_data['category_slug'] = $category['slug'];
 
+        // Fetch pricing
         $pricing_stmt = $pdo->prepare("SELECT duration, price FROM product_pricing WHERE product_id = ?");
         $pricing_stmt->execute([$product['id']]);
         $product_data['pricing'] = $pricing_stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fetch reviews
         $reviews_stmt = $pdo->prepare("SELECT id, name, rating, comment FROM product_reviews WHERE product_id = ? ORDER BY created_at DESC");
         $reviews_stmt->execute([$product['id']]);
         $product_data['reviews'] = $reviews_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $all_products_flat[] = $product_data;
         $category_products_temp[] = $product_data;
+
         $product_slug_map[$category['slug'] . '/' . $product['slug']] = $product['id'];
     }
 
@@ -87,14 +94,18 @@ foreach ($categories as $category) {
     }
 }
 
-// --- URL ROUTING LOGIC ---
+// --- URL ROUTING LOGIC (PHP) ---
 $request_path = trim($_GET['path'] ?? '', '/');
 $path_parts = explode('/', $request_path);
 $initial_view = 'home'; 
 $initial_params = new stdClass();
 
 if ($request_path) {
-    $view_map = ['order-history' => 'orderHistory', 'about-us' => 'aboutUs', 'privacy-policy' => 'privacyPolicy', 'terms-and-conditions' => 'termsAndConditions', 'refund-policy' => 'refundPolicy'];
+    $view_map = [
+        'order-history' => 'orderHistory', 'about-us' => 'aboutUs',
+        'privacy-policy' => 'privacyPolicy', 'terms-and-conditions' => 'termsAndConditions',
+        'refund-policy' => 'refundPolicy'
+    ];
     $view_key = $path_parts[0];
     
     if (isset($product_slug_map[$request_path])) {
